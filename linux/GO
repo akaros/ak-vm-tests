@@ -1,0 +1,11 @@
+# Put this in /linux (rminnich/linux) and run it to build your
+# vm tests into the initramfs
+cd ak-vm-tests
+make -B all
+cd ..
+sudo cp ak-vm-tests/usr-bin-tests/* initramfs_source_dir/usr/bin/tests/
+sudo cp ak-vm-tests/bin/* initramfs_source_dir/bin/
+cd initramfs_source_dir
+find . -print | sudo cpio -o -H newc > ../initramfs.cpio
+cd ..
+bash DIT
