@@ -1,5 +1,5 @@
 
-all: launcher fp_test photon
+all: launcher ext_state_leak_test photon
 
 launcher: launcher/launcher.c
 	gcc -o bin/launcher launcher/launcher.c -static
