@@ -52,8 +52,8 @@ prov -tc -p$PID_B -v8
 
 echo "Initial provision (mode 0)"
 
-# 4. Let the VMs run for a bit
-usleep 100 # 100 microseconds
+# 4. Let the VMs run long enough to boot and set up their test programs (usually about 14sec)
+usleep 15000000 # 15 sec = 15 million microsec
 
 echo "Completed initial run (mode 0)"
 
@@ -92,7 +92,7 @@ do
     SWAPCT=$((SWAPCT+1))
 
     echo Running after swap $SWAPCT to mode $MODE
-    usleep 100
+    usleep 10000 # 10 milliseconds
     echo Completed swap-and-runs: $SWAPCT
 done
 
