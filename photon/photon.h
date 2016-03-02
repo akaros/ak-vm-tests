@@ -5,7 +5,7 @@
 
 #endif
 typedef PHOTONFLOATTYPE PHOTONFLOAT;
-#define      npp0      5000000
+#define      npp0      5000
 #define NPP npp0
 #define ntasks0    1
 #define NTASKS ntasks0

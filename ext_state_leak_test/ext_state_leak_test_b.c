@@ -554,6 +554,8 @@ int main() {
   uint32_t eax = 0;
   uint64_t xcr0 = 0;
 
+  printf("Starting ext_state_leak_test_b.\n");
+
   xgetbv_ecx0(&edx, &eax);
   xcr0 = ((uint64_t)edx << 32) | eax;
 

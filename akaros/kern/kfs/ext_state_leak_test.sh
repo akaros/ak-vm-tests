@@ -1,104 +1,103 @@
 #!/bin/ash
 
-# will run lock_test with whatever arguments are passed in.  default arguments
-# are -wMAX_VCORES and -l10000.
+# can use pip pid from the monitor to see vcore allocation
+# what about provisioning?
 
-# TODO: take a param up to MAXVC for how many cores we preempt per loop
-# TODO: make a program that does the preemption, instead of the script.  it
-# takes around 2ms to spawn, run, and wait on a program, which messes with the
-# timing.  When we do this, pull in the vcore shuffling code from prov.c and
-# have that be an option.
-# TODO: have better options for the two preempt styles (periodic, vs total)
-#
-# Run this from looper.sh for multiple runs.
-
-if [ $# -lt 2 ]
+if [ $# -lt 1 ]
 then
-	echo Usage: $0 PREEMPT_DELAY_USEC ARGS_FOR_LOCK_TEST
-	exit
+    echo Usage: $0 NUMSWAPS
+    exit
 fi
 
-PREEMPT_DELAY=$1
+NUMSWAPS=$1
 
-shift
+# 1. Provision the entire machine to pthread_test
 
-# for suppressing output later (no /dev/null, and also append doesn't work)
-echo "" >> tmpfile
-
-# retval of max_vcores is the value
+# max_vcores returns the max number of vcores for the machine
 max_vcores
 MAXVC=$?
-# pth_test exists to hog the machine
+
+# pthread_test exists to hog the machine
+# TODO: Need to figure out what these args to pthread_test do
+# TODO: Do I need to run prov for pthread_test?
 pthread_test 100 999999999 $MAXVC >> tmpfile 2>&1 &
-PTHPID=$!
-echo Launch pth_test, pid was $PTHPID
+PID_PTH=$!
+echo "Launched pth_test, pid: $PID_PTH"
 
-# if arguments, like -w are repeated, the second one is used
-lock_test -w $MAXVC -l 10000 $@ &
-LOCKPID=$!
-echo Launch lock_test, pid was $LOCKPID
+# prov:
+# -tc means resource type = cores
+# -p means PID
+# -m means max amount of resources of given type get provisioned
+# TODO: do I need to redirect prov's output to a file? other script uses tempfile
+prov -tc -p$PID_PTH -m
 
-# while lock_test is still alive, we preempt every so often, then give it back.
-# using the retval of prov -p$LOCKPID to tell us if lock_test is around
-RET=0
-INC=0
+# 2. Create two VMs. Neither will start running because there are no cores available.
+vmrunkernel -c ext_state_leak_test_a xxx > ext_state_vm_a.out 2>&1 &
+PID_A=$!
+vmrunkernel -c ext_state_leak_test_b xxx > ext_state_vm_b.out 2>&1 &
+PID_B=$!
 
-# This is the preempt and never return, hoping to catch deadlocks
-prov -tc -p$LOCKPID -m >> tmpfile 2>&1
+echo Launched VM a and b, pids: a: $PID_A, b: $PID_B
 
-usleep $PREEMPT_DELAY
+# 3. Then provision 4 cores to each VM. (e.g. 1234 for VM1, 5678 for VM2)
+prov -tc -p$PID_A -v1
+prov -tc -p$PID_A -v2
+prov -tc -p$PID_A -v3
+prov -tc -p$PID_A -v4
 
-prov -tc -p$PTHPID -v1 >> tmpfile 2>&1
-prov -tc -p$PTHPID -v2 >> tmpfile 2>&1
+prov -tc -p$PID_B -v5
+prov -tc -p$PID_B -v6
+prov -tc -p$PID_B -v7
+prov -tc -p$PID_B -v8
 
-# giving it vc3, which it already has.  this is just a test on process existence
-while [ $RET -eq 0 ]; do
-	prov -tc -p$LOCKPID -v3 >> tmpfile 2>&1
-	RET=$?
-	usleep $PREEMPT_DELAY
+echo "Initial provision (mode 0)"
+
+# 4. Let the VMs run for a bit
+usleep 100 # 100 microseconds
+
+echo "Completed initial run (mode 0)"
+
+MODE=0
+SWAPCT=0
+while [ $SWAPCT -lt $NUMSWAPS ]
+do
+    # 5. Provision the entire machine back to pthread_test
+    prov -tc -p$PID_PTH -m
+
+    # 6. Provision 4 cores to each VM, but this time swap the cores between them
+    if [ $MODE -eq 1 ];
+    then
+        prov -tc -p$PID_A -v1
+        prov -tc -p$PID_A -v2
+        prov -tc -p$PID_A -v3
+        prov -tc -p$PID_A -v4
+
+        prov -tc -p$PID_B -v5
+        prov -tc -p$PID_B -v6
+        prov -tc -p$PID_B -v7
+        prov -tc -p$PID_B -v8
+        MODE=0
+    else
+        prov -tc -p$PID_A -v5
+        prov -tc -p$PID_A -v6
+        prov -tc -p$PID_A -v7
+        prov -tc -p$PID_A -v8
+
+        prov -tc -p$PID_B -v1
+        prov -tc -p$PID_B -v2
+        prov -tc -p$PID_B -v3
+        prov -tc -p$PID_B -v4
+        MODE=1
+    fi
+    SWAPCT=$((SWAPCT+1))
+
+    echo Running after swap $SWAPCT to mode $MODE
+    usleep 100
+    echo Completed swap-and-runs: $SWAPCT
 done
 
-## This is the preempt, return, preempt return cycle
-#while [ $RET -eq 0 ]; do
-#	prov -tc -p$LOCKPID -m >> tmpfile 2>&1
-#	RET=$?
-#
-#	usleep $PREEMPT_DELAY
-#
-#	prov -tc -p$PTHPID -v1 >> tmpfile 2>&1
-#	prov -tc -p$PTHPID -v2 >> tmpfile 2>&1
-#
-#	# the extra preempts here are to make us wait longer, to see gaps where we
-#	# "locked up" more clearly.
-#	usleep $PREEMPT_DELAY
-#	usleep $PREEMPT_DELAY
-#	usleep $PREEMPT_DELAY
-#	usleep $PREEMPT_DELAY
-#	usleep $PREEMPT_DELAY
-#
-#	let INC=$INC+1
-#done
+kill $PID_PTH
+kill $PID_A
+kill $PID_B
 
-## This is the 'run for a bit, preempt a lot just once, then return all style
-#prov -tc -p$LOCKPID -m >> tmpfile 2>&1
-#usleep $PREEMPT_DELAY
-#prov -tc -p$PTHPID -v1 >> tmpfile 2>&1
-#prov -tc -p$PTHPID -v2 >> tmpfile 2>&1
-#prov -tc -p$PTHPID -v3 >> tmpfile 2>&1
-#prov -tc -p$PTHPID -v4 >> tmpfile 2>&1
-#prov -tc -p$PTHPID -v5 >> tmpfile 2>&1
-#prov -tc -p$PTHPID -v6 >> tmpfile 2>&1
-#prov -tc -p$PTHPID -v7 >> tmpfile 2>&1
-#prov -tc -p$PTHPID -v8 >> tmpfile 2>&1
-#prov -tc -p$PTHPID -v9 >> tmpfile 2>&1
-#usleep $PREEMPT_DELAY
-#prov -tc -p$LOCKPID -m >> tmpfile 2>&1
-#
-#while [ $RET -eq 0 ]; do
-#	prov -tc -p$LOCKPID -m >> tmpfile 2>&1
-#	RET=$?
-#	usleep $PREEMPT_DELAY
-#done
-
-echo All done, killing pth_test.  Did $INC prov-preempt loops.
-kill -9 $PTHPID
+echo "Finished extended state leak test."
