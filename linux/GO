@@ -1,5 +1,12 @@
 # Put this in /linux (rminnich/linux) and run it to build your
-# vm tests into the initramfs
+# vm tests into the initramfs. Prior to running it, you will
+# need to extract the initramfs to an initramfs_source_dir
+# folder with the following sequence of commands:
+# Starting from .../linux/:
+# mkdir initramfs_source_dir
+# cd initramfs_source_dir
+# sudo cpio -i < ../initramfs.cpio
+
 cd ak-vm-tests
 make -B all
 cd ..
