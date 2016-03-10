@@ -18,8 +18,7 @@ max_vcores
 MAXVC=$?
 
 # pthread_test exists to hog the machine
-# TODO: Need to figure out what these args to pthread_test do
-# TODO: Do I need to run prov for pthread_test?
+# pthread_test num_threads num_loops [num_vcores]
 pthread_test 100 999999999 $MAXVC >> tmpfile 2>&1 &
 PID_PTH=$!
 echo "Launched pth_test, pid: $PID_PTH"
@@ -50,10 +49,11 @@ prov -tc -p$PID_B -v6
 prov -tc -p$PID_B -v7
 prov -tc -p$PID_B -v8
 
-echo "Initial provision (mode 0)"
+echo "Initial provision (mode 0) (prov -s):"
+prov -s
 
 # 4. Let the VMs run long enough to boot and set up their test programs (usually about 14sec)
-usleep 15000000 # 15 sec = 15 million microsec
+usleep 20000000 # 20 sec
 
 echo "Completed initial run (mode 0)"
 
@@ -92,7 +92,9 @@ do
     SWAPCT=$((SWAPCT+1))
 
     echo Running after swap $SWAPCT to mode $MODE
-    usleep 10000 # 10 milliseconds
+    echo "Allocations (prov -s):"
+    prov -s
+    usleep 10000000 # 10 seconds
     echo Completed swap-and-runs: $SWAPCT
 done
 
