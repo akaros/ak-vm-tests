@@ -1,5 +1,5 @@
 
-all: launcher ext_state_leak_test photon ak-kfs
+all: launcher ext_state_leak_test photon prxcr0 ak-kfs
 
 launcher: launcher/launcher.c
 	gcc -o bin/launcher launcher/launcher.c -static
@@ -13,6 +13,9 @@ ext_state_leak_test: ext_state_leak_test/ext_state_leak_test_a.c ext_state_leak_
 photon: photon/photon.c photon/photon.h
 	gcc -D MAIN=1 -o usr-bin-tests/photon photon/photon.c -lm -static
 	echo "/usr/bin/tests/photon" > usr-bin-tests/photon.sh
+
+prxcr0: prxcr0/prxcr0.c
+	gcc -o usr-bin-tests/prxcr0 prxcr0/prxcr0.c -static
 
 ak-kfs: akaros/kern/kfs/ext_state_leak_test.sh
 	cp akaros/kern/kfs/ext_state_leak_test.sh $(AKAROS)/kern/kfs/ext_state_leak_test.sh
