@@ -1,5 +1,5 @@
 
-all: launcher ext_state_leak_test photon prxcr0 ak-kfs
+all: launcher ext_state_leak_test photon prxcr0 xstate_detect xsaveopt_test ak-kfs
 
 launcher: launcher/launcher.c
 	gcc -o bin/launcher launcher/launcher.c -static
@@ -16,6 +16,12 @@ photon: photon/photon.c photon/photon.h
 
 prxcr0: prxcr0/prxcr0.c
 	gcc -o usr-bin-tests/prxcr0 prxcr0/prxcr0.c -static
+
+xstate_detect: xstate_detect/xstate_detect.c
+	gcc -o usr-bin-tests/xstate_detect xstate_detect/xstate_detect.c -static -std=c99
+
+xsaveopt_test: xsaveopt_test/xsaveopt_test.c
+	gcc -o usr-bin-tests/xsaveopt_test xsaveopt_test/xsaveopt_test.c -static
 
 ak-kfs: akaros/kern/kfs/ext_state_leak_test.sh
 	cp akaros/kern/kfs/ext_state_leak_test.sh $(AKAROS)/kern/kfs/ext_state_leak_test.sh
