@@ -1,5 +1,5 @@
 
-all: launcher ext_state_leak_test photon prxcr0 xstate_detect xsaveopt_test ak-kfs
+all: launcher ext_state_leak_test prxcr0 xstate_detect xsaveopt_test ak-kfs
 
 launcher: launcher/launcher.c
 	gcc -o bin/launcher launcher/launcher.c -static
@@ -11,10 +11,6 @@ ext_state_leak_test: ext_state_leak_test/ext_state_leak_test_a.c ext_state_leak_
 	echo "/usr/bin/tests/ext_state_leak_test_a" > usr-bin-tests/ext_state_leak_test_a.sh
 	echo "/usr/bin/tests/ext_state_leak_test_b" > usr-bin-tests/ext_state_leak_test_b.sh
 	echo "/usr/bin/tests/ext_state_leak_test_c" > usr-bin-tests/ext_state_leak_test_c.sh
-
-photon: photon/photon.c photon/photon.h
-	gcc -D MAIN=1 -o usr-bin-tests/photon photon/photon.c -lm -static
-	echo "/usr/bin/tests/photon" > usr-bin-tests/photon.sh
 
 prxcr0: prxcr0/prxcr0.c
 	gcc -o usr-bin-tests/prxcr0 prxcr0/prxcr0.c -static

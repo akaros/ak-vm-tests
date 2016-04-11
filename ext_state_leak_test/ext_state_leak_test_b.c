@@ -1,4 +1,18 @@
 /*
+ * Copyright 2016 Google Inc.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License as
+ * published by the Free Software Foundation; either version 2 of
+ * the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ */
+
+/*
     Reads xcr0, sets the fpu state and the processor extended state components
     to predetermined values (where possible), then reads the state components
     to see if the values are still there.
@@ -24,8 +38,8 @@
          It is somewhat unlikely that this third condition will be the issue.
  */
 
-// TODO: To have a really complete test, there are still a few more stubborn
-//       portions of x87 fpu state that we should engineer a way to toggle.
+// TODO: If there is a way to poke more x87 state than these tests already do,
+//       that would be cool.
 
 // TODO: These tests need to be updated as Intel adds more extended state components.
 
